@@ -16,6 +16,14 @@
         body {
             font-family: 'Cairo', sans-serif;
         }
+        /* كلاس إضافي لضمان تحميل صورة الخلفية بشكل صحيح مع التغطية */
+        .hero-bg {
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(17, 94, 89, 0.8); /* لون داكن فوق الصورة */
+            height: 400px; /* ارتفاع ثابت لـ Hero */
+        }
     </style>
     <script>
         // إعداد Tailwind لاستخدام خط Cairo
@@ -34,6 +42,13 @@
                 }
             }
         }
+
+        // دالة بسيطة لتعيين صورة الخلفية
+        window.onload = function() {
+            const heroSection = document.getElementById('hero');
+            // التأكد من وجود الصورة IMG-20251107-WA0150.jpg في نفس المجلد
+            heroSection.style.backgroundImage = "url('IMG-20251107-WA0150.jpg')";
+        };
     </script>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -61,8 +76,8 @@
         </nav>
     </header>
 
-    <!-- القسم الرئيسي (Hero) -->
-    <section id="hero" class="bg-primary-dark text-white py-20" style="background-image: url('https://placehold.co/1200x600/115E59/FFFFFF?text=Global+Network'); background-size: cover; background-position: center; background-blend-mode: overlay; background-color: rgba(17, 94, 89, 0.8);">
+    <!-- القسم الرئيسي (Hero) - تم تعيين الصورة الجديدة عبر CSS و JS -->
+    <section id="hero" class="hero-bg text-white py-20">
         <div class="container mx-auto px-6 text-center">
             <h1 class="text-4xl md:text-6xl font-extrabold mb-4">صافي، جسرك الآمن</h1>
             <p class="text-xl md:text-2xl mb-8">لتحويل أموالك حول العالم بسرعة وأمان</p>
